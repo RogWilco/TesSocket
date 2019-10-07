@@ -1,0 +1,23 @@
+{
+    "name": "@rogwilco/tessocket",
+    "version": "1.0.0",
+    "author": "Nick Williams",
+    "license": "Private",
+    "repository": {
+        "type": "git",
+        "name": "git+https://github.com/rogwilco/TesSocket.git"
+    },
+    "engines": {
+        "node": ">=10.0.0",
+        "npm": ">=6.0.0",
+        "typescript": ">=3.0.0"
+    },
+    "scripts": {
+        "build": "npm run clean && npm install && tsc",
+        "clean": "cat .cleanrc | sed -E '/^#.*$/ d' | sed '/^\\s*$/ d' | xargs rm -rf",
+    },
+    "devDependencies": {
+        "@types/node": "^12.7.11",
+        "typescript": "^3.6.3"
+    }
+}

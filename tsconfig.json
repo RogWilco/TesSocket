@@ -1,0 +1,24 @@
+{
+    "compilerOptions": {
+        "alwaysStrict": true,
+        "baseUrl": "./src/",
+        "declaration": true,
+        "declarationDir": "./build/types",
+        "declarationMap": true,
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "lib": ["esnext"],
+        "module": "CommonJS",
+        "moduleResolution": "node",
+        "outDir": "./build/out",
+        "removeComments": true,
+        "resolveJsonModule": true,
+        "sourceMap": true,
+        "strict": true,
+        "target": "es2018"
+    },
+    "include": [
+        "src/**/*",
+        "test/**/*"
+    ]
+}
