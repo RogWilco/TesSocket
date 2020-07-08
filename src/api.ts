@@ -1,5 +1,6 @@
 import * as _ from 'lodash'
 import fetch from 'node-fetch'
+import * as WebSocket from 'ws'
 
 export type RequestMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE'
 
@@ -59,7 +60,7 @@ export default class API {
     async request(method: RequestMethod, path: string): Promise<any> {
         await this.authenticate()
 
-        const response = await fetch(
+        const res = await fetch(
             `${API.URL_BASE}${path}`,
             {
                 method,
@@ -69,7 +70,7 @@ export default class API {
             }
         )
 
-        const body = await response.json()
+        const body = await res.json()
 
         return body.response
     }
@@ -116,9 +117,36 @@ export default class API {
         return this.request('GET', `/vehicles/${vehicle.id_s}/vehicle_data`)
     }
 
+    /**
+     * Retrieves the required WebSocket tokents for use with summon, smart-summon, etc.
+     *
+     * @param vin the target vehicle's VIN
+     *
+     * @return the requested WebSocket tokens
+     */
     async getWsTokens(vin: string) {
         const vehicle = await this.getVehicle(vin)
 
         return vehicle.tokens
+    }
+
+    /**
+     * Opens a new WebSocket connection to Tesla for the specified target vehicle.
+     *
+     * @param vin the target vehicle's VIN
+     *
+     * @return the opened WebSocket connection
+     */
+    async openWsConnection(vin: string) {
+        const vehicle = await this.getVehicleData(vin)
+
+        return new WebSocket(
+            `wss://streaming.vn.teslamotors.com/connect/${vehicle.vehicle_id}`,
+            {
+                headers: {
+                    Authorization: 'Basic ' + Buffer.from(`${this.email}:${vehicle.tokens[0]}`).toString('base64')
+                }
+            }
+        )
     }
 }

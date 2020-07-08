@@ -1,30 +1,26 @@
-import Message from './Message/index'
 import * as WebSocket from 'ws'
 
 import API from './api'
-import { Stream } from 'stream'
 
-const AUTH_EMAIL = ''
-const AUTH_PASSWORD = ''
+const AUTH_EMAIL = 'accounts.tesla@nickawilliams.com'
+const AUTH_PASSWORD = 'tfa>6kZj;CAi34T7qZm>W=g8642PL2w6'
+const VIN = '5YJ3E1EB7JF100436'
+const direction = 'forward'
 
 export default async function () {
-    const VIN = '5YJ3E1EB7JF100436'
     const api = new API(AUTH_EMAIL, AUTH_PASSWORD)
-    // const vehicle = await api.getVehicle(VIN)
-    const vehicle = await api.getVehicleData(VIN)
 
-    const ws = new WebSocket(
-        `wss://streaming.vn.teslamotors.com/connect/${vehicle.vehicle_id}`,
-        {
-            headers: {
-                Authorization: 'Basic ' + Buffer.from(`${AUTH_EMAIL}:${vehicle.tokens[0]}`).toString('base64')
-            }
-        }
-    )
+    const vehicle = await api.getVehicleData(VIN)
+    console.log(vehicle)
+
+    const ws = await api.openWsConnection(VIN)
+    let heartbeatInterval: NodeJS.Timeout
+    let heartbeatFrequency: number
 
     ws.on('error', err => {
       console.log('ERROR')
       console.log(err)
+      clearInterval(heartbeatInterval)
     })
 
     ws.on('open', () => {
@@ -34,6 +30,7 @@ export default async function () {
 
     ws.on('close', () => {
       console.log('DISCONNECTED')
+      clearInterval(heartbeatInterval)
     })
 
     ws.on('message', payload => {
@@ -41,10 +38,39 @@ export default async function () {
 
       switch(message.msg_type) {
         case 'control:hello':
-        case 'control:goodbye':
-        case 'autopark:style':
+            heartbeatFrequency = message.autopark.heartbeat_frequency
+            console.log(message)
+          break
+
         case 'autopark:status':
+          switch(message.autopark_state) {
+            case 'ready':
+              // Activate heartbeat
+              heartbeatInterval = setInterval(() => {
+                ws.send(JSON.stringify({
+                  msg_type: 'autopark:heartbeat_app',
+                  timestamp: new Date().getTime(),
+                }))
+              }, heartbeatFrequency)
+
+              console.log(`-- SUMMONING: ${direction}`)
+
+              // Send summon command
+              ws.send(JSON.stringify({
+                msg_type: `autopark:cmd_${direction}`,
+                latitude: vehicle.drive_state.latitude,
+                longitude: vehicle.drive_state.longitude,
+              }))
+
+              break
+          }
+
+        case 'control:goodbye':
+        case 'autopark:error':
+        case 'autopark:heartbeat_car':
+        case 'autopark:style':
         case 'homelink:status':
+        case 'autopark:smart_summon_viz':
         case 'vehicle_data:location':
 
         default:
